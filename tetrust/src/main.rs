@@ -5,6 +5,22 @@ struct Position {
   y: usize,
 }
 
+// フィールドサイズ
+const FIELD_WIDTH:  usize = 11 + 2;  // フィールド＋壁
+const FIELD_HEIGHT: usize = 20 + 1;  // フィールド＋底
+type Field = [[usize; FIELD_WIDTH]; FIELD_HEIGHT];
+
+fn is_collection(field: &Field, pos: &Position, block: BlockKind) -> bool {
+  for y in 0..4 {
+    for x in 0..4 {
+      if field[y+pos.y+1][x+pos.x] & BLOCKS[block as usize][y][x] == 1 {
+        return true
+      }
+    }
+  }
+  return false;
+}
+
 fn main() {
 
   let field = [
@@ -37,8 +53,12 @@ fn main() {
   println!("\x1b[2J\x1b[H\x1b[?25l");
 
   // block info
-  for _ in 0..5 {
+  for _ in 0..30 {
     let mut field_buf = field; // mutable
+    if !is_collection(&field, &pos, BlockKind::I) {
+      pos.y += 1;
+    }
+
     for y in 0..4 {
       for x in 0..4 {
         // field_buf[y+ 2][x+2] |= BLOCKS[BlockKind::I as usize][y][x];
@@ -60,10 +80,10 @@ fn main() {
 
     // show field
     println!("\x1b[H");  // カーソルを先頭に移動
-    for y in 0..21 {
-      for x in 0..13 {
+    for y in 0..FIELD_HEIGHT {
+      for x in 0..FIELD_WIDTH {
         if field_buf[y][x] == 1 {
-          print!("[]");  // 
+          print!("[]");
         } else {
           print!(" .")
         }
@@ -78,6 +98,7 @@ fn main() {
   println!("\x1b[?25h");
 }
 
+#[derive(Clone, Copy)]
 enum BlockKind {
   I,
   O,
