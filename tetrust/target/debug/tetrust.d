@@ -1,1 +1,1 @@
-/Users/jmb20210029/works/private/rust-tetoris/tetrust/target/debug/tetrust: /Users/jmb20210029/works/private/rust-tetoris/tetrust/src/main.rs
+/Users/jmb20210029/works/private/rust-tetoris/tetrust/target/debug/tetrust: /Users/jmb20210029/works/private/rust-tetoris/tetrust/src/block.rs /Users/jmb20210029/works/private/rust-tetoris/tetrust/src/main.rs
