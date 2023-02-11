@@ -14,10 +14,10 @@ const FIELD_WIDTH:  usize = 11 + 2;  // フィールド＋壁
 const FIELD_HEIGHT: usize = 20 + 1;  // フィールド＋底
 type Field = [[usize; FIELD_WIDTH]; FIELD_HEIGHT];
 
-fn is_collection(field: &Field, pos: &Position, block: BlockKind) -> bool {
+fn is_collision(field: &Field, pos: &Position, block: BlockKind) -> bool {
   for y in 0..4 {
     for x in 0..4 {
-      if field[y+pos.y+1][x+pos.x] & BLOCKS[block as usize][y][x] == 1 {
+      if field[y+pos.y][x+pos.x] & BLOCKS[block as usize][y][x] == 1 {
         return true
       }
     }
@@ -60,8 +60,14 @@ fn main() {
   // block info
   loop {
     let mut field_buf = field; // mutable
-    if !is_collection(&field, &pos, BlockKind::I) {
-      pos.y += 1;
+
+    let new_pos = Position {
+      x: pos.x,
+      y: pos.y + 1,
+    };
+
+    if !is_collision(&field, &new_pos, BlockKind::I) {
+      pos = new_pos;
     }
 
     for y in 0..4 {
@@ -100,6 +106,37 @@ fn main() {
 
     // q でループを抜ける
     match g.getch() {
+      Ok(Key::Left) => {
+        let new_pos = Position {
+            x: pos.x - 1,
+            y: pos.y,
+        };
+        if !is_collision(&field, &new_pos, BlockKind::I) {
+            // posの座標を更新
+            pos = new_pos;
+        }
+      }
+      Ok(Key::Down) => {
+        let new_pos = Position {
+            x: pos.x,
+            y: pos.y + 1,
+        };
+        if !is_collision(&field, &new_pos, BlockKind::I) {
+            // posの座標を更新
+            pos = new_pos;
+        }
+      }
+      Ok(Key::Right) => {
+        let new_pos = Position {
+            x: pos.x + 1,
+            y: pos.y,
+        };
+        if !is_collision(&field, &new_pos, BlockKind::I) {
+            // posの座標を更新
+            pos = new_pos;
+        }
+      }
+
       Ok(Key::Char('q')) => break,
       _ => (),  // 何もしない
     }
