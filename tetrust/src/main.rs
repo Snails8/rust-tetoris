@@ -1,5 +1,6 @@
 mod block;
 
+use std::sync::{Arc, Mutex};
 use std::{thread, time};
 use getch_rs::{Getch, Key};
 use block::{BlockKind, BLOCKS};
@@ -23,6 +24,31 @@ fn is_collision(field: &Field, pos: &Position, block: BlockKind) -> bool {
     }
   }
   return false;
+}
+
+// draw field
+fn draw(field: &Field, pos: &Position) {
+  let mut field_buf = field.clone();
+  for y in 0..4 {
+    for x in 0..4 {
+      if BLOCKS[BlockKind::I as usize][y][x] == 1 {
+        field_buf[y+pos.y][x+pos.x] = 1;
+      }
+    }
+  }
+
+  // フィールドを描画
+  println!("\x1b[H");  // カーソルを先頭に移動
+  for y in 0..FIELD_HEIGHT {
+      for x in 0..FIELD_WIDTH {
+          if field_buf[y][x] == 1 {
+              print!("[]");
+          } else {
+              print!(" .");
+          }
+      }
+      println!();
+  }
 }
 
 fn main() {
@@ -51,97 +77,82 @@ fn main() {
     [1,1,1,1,1,1,1,1,1,1,1,1,1],
   ];
 
-  let mut pos = Position { x: 4, y: 0 };
-  let g = Getch::new();
+  // let mut pos = Position { x: 4, y: 0 };
+  // let g = Getch::new();
+
+  let pos = Arc::new(Mutex::new(Position { x: 4, y: 4 }));
 
   // 画面クリア
   println!("\x1b[2J\x1b[H\x1b[?25l");
 
-  // block info
-  loop {
-    let mut field_buf = field; // mutable
+  draw(&field, &pos.lock().unwrap());
 
-    let new_pos = Position {
-      x: pos.x,
-      y: pos.y + 1,
-    };
-
-    if !is_collision(&field, &new_pos, BlockKind::I) {
-      pos = new_pos;
-    }
-
-    for y in 0..4 {
-      for x in 0..4 {
-        // field_buf[y+ 2][x+2] |= BLOCKS[BlockKind::I as usize][y][x];
-        // field_buf[y+ 2][x+7] |= BLOCKS[BlockKind::O as usize][y][x];
-        // field_buf[y+ 6][x+2] |= BLOCKS[BlockKind::S as usize][y][x];
-        // field_buf[y+ 6][x+7] |= BLOCKS[BlockKind::Z as usize][y][x];
-        // field_buf[y+10][x+2] |= BLOCKS[BlockKind::J as usize][y][x];
-        // field_buf[y+10][x+7] |= BLOCKS[BlockKind::L as usize][y][x];
-        // field_buf[y+14][x+2] |= BLOCKS[BlockKind::T as usize][y][x];
-
-        if BLOCKS[BlockKind::I as usize][y][x] == 1 {
-          field_buf[y+pos.y][x+pos.x] = 1;
-        }
-      }
-    }
-
-    // update pos
-    pos.y += 1;
-
-    // show field
-    println!("\x1b[H");  // カーソルを先頭に移動
-    for y in 0..FIELD_HEIGHT {
-      for x in 0..FIELD_WIDTH {
-        if field_buf[y][x] == 1 {
-          print!("[]");
-        } else {
-          print!(" .")
-        }
-      }
-      println!(); // 改行の役目
-    }
-    
-    thread::sleep(time::Duration::from_millis(1000));
-
-    // q でループを抜ける
-    match g.getch() {
-      Ok(Key::Left) => {
-        let new_pos = Position {
-            x: pos.x - 1,
-            y: pos.y,
-        };
-        if !is_collision(&field, &new_pos, BlockKind::I) {
-            // posの座標を更新
-            pos = new_pos;
-        }
-      }
-      Ok(Key::Down) => {
+  // 自然落下処理
+  {
+    let pos = Arc::clone(&pos);
+    let _ = thread::spawn(move || {
+      loop {
+        // 1秒間スリーブする
+        thread::sleep(time::Duration::from_millis(1000));
+        // 自然落下
+        let mut pos = pos.lock().unwrap();
         let new_pos = Position {
             x: pos.x,
             y: pos.y + 1,
         };
         if !is_collision(&field, &new_pos, BlockKind::I) {
             // posの座標を更新
-            pos = new_pos;
+            *pos = new_pos;
+        }
+        // フィールドを描画
+        draw(&field, &pos);
+      }
+    });
+  }
+
+  let g = Getch::new();
+  loop {
+    match g.getch() {
+      Ok(Key::Left) => {
+        let mut pos = pos.lock().unwrap();
+        let new_pos = Position {
+            x: pos.x - 1,
+            y: pos.y,
+        };
+        if !is_collision(&field, &new_pos, BlockKind::I) {
+            // posの座標を更新
+            *pos = new_pos;
+        }
+      }
+      Ok(Key::Down) => {
+        let mut pos = pos.lock().unwrap();
+        let new_pos = Position {
+            x: pos.x,
+            y: pos.y + 1,
+        };
+        if !is_collision(&field, &new_pos, BlockKind::I) {
+            // posの座標を更新
+            *pos = new_pos;
         }
       }
       Ok(Key::Right) => {
+        let mut pos = pos.lock().unwrap();
         let new_pos = Position {
             x: pos.x + 1,
             y: pos.y,
         };
         if !is_collision(&field, &new_pos, BlockKind::I) {
             // posの座標を更新
-            pos = new_pos;
+            *pos = new_pos;
         }
       }
 
-      Ok(Key::Char('q')) => break,
+      Ok(Key::Char('q')) => {
+        // カーソルを再表示
+        println!("\x1b[?25h");
+        return;
+      }
       _ => (),  // 何もしない
     }
   }
-
-  // カーソルを再表示
-  println!("\x1b[?25h");
 }
