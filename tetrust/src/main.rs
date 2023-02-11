@@ -1,8 +1,8 @@
 mod block;
 
 use std::{thread, time};
+use getch_rs::{Getch, Key};
 use block::{BlockKind, BLOCKS};
-
 
 struct Position {
   x: usize,
@@ -52,12 +52,13 @@ fn main() {
   ];
 
   let mut pos = Position { x: 4, y: 0 };
+  let g = Getch::new();
 
   // 画面クリア
   println!("\x1b[2J\x1b[H\x1b[?25l");
 
   // block info
-  for _ in 0..30 {
+  loop {
     let mut field_buf = field; // mutable
     if !is_collection(&field, &pos, BlockKind::I) {
       pos.y += 1;
@@ -96,6 +97,12 @@ fn main() {
     }
     
     thread::sleep(time::Duration::from_millis(1000));
+
+    // q でループを抜ける
+    match g.getch() {
+      Ok(Key::Char('q')) => break,
+      _ => (),  // 何もしない
+    }
   }
 
   // カーソルを再表示
